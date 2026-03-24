@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="manifest" href="/manifest.json">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%237BAFD4'/><path d='M4 4h8M4 8h6M4 12h7' stroke='white' stroke-width='1.5' stroke-linecap='round'/></svg>">
 <title>Journal</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -197,6 +200,55 @@ button{font-family:inherit;cursor:pointer}
 .icon{display:inline-flex;align-items:center;vertical-align:middle}
 .icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
+/* Follow-up questions */
+.followups{margin-top:14px;display:none}
+.followups.show{display:block}
+.followups-label{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:8px}
+.followup-q{padding:10px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;font-size:13px;color:var(--tx);cursor:pointer;transition:all .15s;line-height:1.5}
+.followup-q:hover{border-color:var(--ac);background:var(--ad);color:var(--ac)}
+
+/* Photos */
+.photo-upload{margin-top:10px}
+.photo-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:var(--s2);border:1px solid var(--bd);color:var(--t2);border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s}
+.photo-btn:hover{border-color:var(--ac);color:var(--ac)}
+.photo-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.photo-thumb{width:72px;height:72px;border-radius:6px;object-fit:cover;cursor:pointer;border:1px solid var(--bd);transition:border .15s}
+.photo-thumb:hover{border-color:var(--ac)}
+.photo-thumb-wrap{position:relative;display:inline-block}
+.photo-rm{position:absolute;top:-4px;right:-4px;width:18px;height:18px;background:var(--rc);color:#fff;border:none;border-radius:50%;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;opacity:0;transition:opacity .15s}
+.photo-thumb-wrap:hover .photo-rm{opacity:1}
+.photo-lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:200;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px)}
+.photo-lightbox.show{display:flex}
+.photo-lightbox img{max-width:90vw;max-height:90vh;border-radius:8px}
+
+/* View tabs (Day / Week / Month) */
+.view-tabs{display:flex;gap:0;margin-bottom:14px;border-radius:8px;overflow:hidden;border:1px solid var(--bd)}
+.view-tab{flex:1;padding:8px;text-align:center;font-size:12px;font-weight:500;cursor:pointer;background:var(--s1);color:var(--t3);transition:all .15s}
+.view-tab.active{background:var(--ac);color:#fff}
+.view-tab:hover:not(.active){color:var(--t2)}
+
+/* Recap */
+.recap{display:none}
+.recap.show{display:block}
+.recap-card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:20px;margin-bottom:12px;animation:fu .25s ease}
+.recap-title{font-size:18px;font-weight:600;letter-spacing:-.3px;margin-bottom:4px}
+.recap-subtitle{font-size:12px;color:var(--t3);margin-bottom:16px}
+.recap-mood{display:inline-block;padding:3px 10px;background:var(--ad);border:1px solid rgba(123,175,212,.15);border-radius:12px;font-size:12px;color:var(--ac);margin-bottom:12px}
+.recap-arc{font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:16px;font-style:italic}
+.recap-sec{margin-bottom:14px}
+.recap-sec-lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--ac);margin-bottom:5px}
+.recap-suggestion{padding:12px;background:var(--ad);border-radius:8px;border-left:3px solid var(--ac);font-size:13px;color:var(--tx);line-height:1.6;margin-top:12px}
+.recap-loading{text-align:center;padding:40px;color:var(--t3)}
+.recap-empty{text-align:center;padding:40px;color:var(--t3);font-size:13px}
+.recap-nav{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.recap-nav button{background:var(--s1);border:1px solid var(--bd);color:var(--t2);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.recap-nav button:hover{border-color:var(--ac);color:var(--ac)}
+.recap-period{font-size:14px;font-weight:500}
+
+/* Entry photos grid */
+.e-photos{margin-top:10px}
+.e-photos .photo-grid{margin-top:0}
+
 @media(max-width:600px){.app{padding:12px 12px 80px}.entry{padding:14px}}
 </style>
 </head>
@@ -246,6 +298,21 @@ button{font-family:inherit;cursor:pointer}
 
   <div class="stats" id="stats"></div>
 
+  <div class="view-tabs">
+    <div class="view-tab active" id="viewDay" onclick="setView('day')">Day</div>
+    <div class="view-tab" id="viewWeek" onclick="setView('week')">Week</div>
+    <div class="view-tab" id="viewMonth" onclick="setView('month')">Month</div>
+  </div>
+
+  <!-- Recap views -->
+  <div class="recap" id="recapView">
+    <div class="recap-nav" id="recapNav"></div>
+    <div id="recapContent"></div>
+  </div>
+
+  <!-- Day view (existing) -->
+  <div id="dayView">
+
   <div class="input-tabs">
     <div class="input-tab active" id="tabVoice" onclick="setInputMode('voice')">Voice</div>
     <div class="input-tab" id="tabType" onclick="setInputMode('type')">Write</div>
@@ -271,6 +338,20 @@ button{font-family:inherit;cursor:pointer}
       <button id="typeSubmit" onclick="submitTyped()">Save Entry</button>
     </div>
     <div class="proc" id="proc"><div class="spin"></div><span id="procText">Summarizing...</span></div>
+    <div class="photo-upload">
+      <label class="photo-btn">
+        <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
+        Add Photos
+        <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handlePhotos(this.files)">
+      </label>
+      <div class="photo-grid" id="pendingPhotos"></div>
+    </div>
+  </div>
+
+  <!-- Follow-up questions -->
+  <div class="followups" id="followups">
+    <div class="followups-label">Reflect deeper</div>
+    <div id="followupList"></div>
   </div>
 
   <div id="entries"></div>
@@ -278,6 +359,13 @@ button{font-family:inherit;cursor:pointer}
     <button onclick="exportAll()">Export</button>
     <button onclick="copyCurrent()">Copy</button>
   </div>
+
+  </div><!-- /dayView -->
+</div>
+
+<!-- Photo lightbox -->
+<div class="photo-lightbox" id="photoLightbox" onclick="this.classList.remove('show')">
+  <img id="lightboxImg" src="" alt="">
 </div>
 
 <!-- Calendar Popup -->
@@ -401,6 +489,8 @@ async function saveEntry(date, transcript, summary, duration) {
     ideas_and_insights: summary?.ideas_and_insights || [],
     worries_and_open_loops: summary?.worries_and_open_loops || [],
     other_notes: summary?.other_notes || [],
+    follow_up_questions: summary?.follow_up_questions || [],
+    photos: [],
   };
   const { data, error } = await sb.from('journal_entries').insert(row).select();
   if (error) throw error;
@@ -512,10 +602,30 @@ async function processTranscript(transcript, duration) {
     if (!res.ok) throw new Error('Summarization failed');
     const { summary } = await res.json();
     showProcessing('Saving...');
-    await saveEntry(dk(curDate), transcript, summary, duration);
+    const saved = await saveEntry(dk(curDate), transcript, summary, duration);
+
+    // Upload pending photos
+    if (pendingPhotos.length && saved) {
+      showProcessing('Uploading photos...');
+      const photoUrls = await uploadPhotos(saved.id);
+      if (photoUrls.length) {
+        await updateEntry(saved.id, { photos: photoUrls });
+      }
+    }
+
+    // Save follow-up questions
+    if (summary.follow_up_questions?.length && saved) {
+      await updateEntry(saved.id, { follow_up_questions: summary.follow_up_questions });
+    }
+
     allDates.add(dk(curDate));
     resetRecUI();
     await loadAndRender();
+
+    // Show follow-up questions
+    if (summary.follow_up_questions?.length && saved) {
+      showFollowUps(saved.id, summary.follow_up_questions);
+    }
   } catch (e) {
     document.getElementById('procText').textContent = e.message;
     setTimeout(resetRecUI, 2000);
@@ -641,6 +751,7 @@ async function loadAndRender() {
 }
 
 function render(entries) {
+  hideFollowUps();
   document.getElementById('curDate').textContent = fmtDate(curDate);
   document.getElementById('dayLbl').textContent = dow(curDate);
 
@@ -698,6 +809,8 @@ function renderEntry(e) {
         ${sectionsHtml}
         ${e.tags?.length ? `<div class="tags">${e.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
       </div>
+      ${e.photos?.length ? `<div class="e-photos"><div class="photo-grid">${e.photos.map(p => `<div class="photo-thumb-wrap"><img class="photo-thumb" src="${p}" onclick="openLightbox('${p}')"><button class="photo-rm" onclick="removePhotoFromEntry('${e.id}','${p}')">×</button></div>`).join('')}</div></div>` : ''}
+      <button class="photo-btn" onclick="addPhotoToEntry('${e.id}')" style="margin-top:8px"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span> Add Photo</button>
       <button class="e-transcript-btn" onclick="toggleTranscript('${e.id}')">Transcript${dur ? ' (' + dur + ')' : ''}</button>
       <button class="e-edit-btn" onclick="event.stopPropagation();editTranscript('${e.id}')">edit</button>
       <div class="e-transcript" id="tr-${e.id}">${esc(e.transcript || '')}</div>
@@ -885,6 +998,320 @@ async function exportAll() {
   a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' }));
   a.download = 'journal-export.md'; a.click();
 }
+
+// === PHOTOS ===
+let pendingPhotos = []; // Files pending upload for current entry
+
+function handlePhotos(files) {
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) continue;
+    if (f.size > 10 * 1024 * 1024) { alert('Photo too large (max 10MB)'); continue; }
+    pendingPhotos.push(f);
+  }
+  renderPendingPhotos();
+  document.getElementById('photoInput').value = '';
+}
+
+function renderPendingPhotos() {
+  const el = document.getElementById('pendingPhotos');
+  el.innerHTML = pendingPhotos.map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return `<div class="photo-thumb-wrap">
+      <img class="photo-thumb" src="${url}" onclick="openLightbox('${url}')">
+      <button class="photo-rm" onclick="removePendingPhoto(${i})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function removePendingPhoto(i) {
+  pendingPhotos.splice(i, 1);
+  renderPendingPhotos();
+}
+
+async function uploadPhotos(entryId) {
+  if (!pendingPhotos.length) return [];
+  const urls = [];
+  for (const file of pendingPhotos) {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${user.id}/${entryId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { data, error } = await sb.storage.from('journal-photos').upload(path, file, {
+      contentType: file.type,
+      cacheControl: '31536000',
+    });
+    if (error) { console.error('Upload error:', error); continue; }
+    const { data: { publicUrl } } = sb.storage.from('journal-photos').getPublicUrl(path);
+    urls.push(publicUrl);
+  }
+  pendingPhotos = [];
+  renderPendingPhotos();
+  return urls;
+}
+
+function openLightbox(url) {
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('photoLightbox').classList.add('show');
+}
+
+async function addPhotoToEntry(entryId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.multiple = true;
+  input.onchange = async () => {
+    const files = Array.from(input.files);
+    const urls = [];
+    for (const file of files) {
+      if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) continue;
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/${entryId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await sb.storage.from('journal-photos').upload(path, file, { contentType: file.type });
+      if (error) continue;
+      const { data: { publicUrl } } = sb.storage.from('journal-photos').getPublicUrl(path);
+      urls.push(publicUrl);
+    }
+    if (urls.length) {
+      const entry = (entriesCache[dk(curDate)] || []).find(e => e.id === entryId);
+      const existing = entry?.photos || [];
+      await updateEntry(entryId, { photos: [...existing, ...urls] });
+      await loadAndRender();
+    }
+  };
+  input.click();
+}
+
+async function removePhotoFromEntry(entryId, photoUrl) {
+  const entry = (entriesCache[dk(curDate)] || []).find(e => e.id === entryId);
+  if (!entry) return;
+  const updated = (entry.photos || []).filter(p => p !== photoUrl);
+  await updateEntry(entryId, { photos: updated });
+  await loadAndRender();
+}
+
+// === FOLLOW-UP QUESTIONS ===
+let activeFollowUpEntry = null;
+
+function showFollowUps(entryId, questions) {
+  if (!questions?.length) { hideFollowUps(); return; }
+  activeFollowUpEntry = entryId;
+  const el = document.getElementById('followupList');
+  el.innerHTML = questions.map(q =>
+    `<div class="followup-q" onclick="startFollowUp('${entryId}', this.textContent)">${esc(q)}</div>`
+  ).join('');
+  document.getElementById('followups').classList.add('show');
+}
+
+function hideFollowUps() {
+  activeFollowUpEntry = null;
+  document.getElementById('followups').classList.remove('show');
+}
+
+async function startFollowUp(entryId, question) {
+  // Pre-fill the text area with the question as context
+  setInputMode('type');
+  document.getElementById('typeArea').value = '';
+  document.getElementById('typeArea').placeholder = question;
+  document.getElementById('typeArea').focus();
+  hideFollowUps();
+
+  // Override submit to do follow-up merge
+  document.getElementById('typeSubmit').onclick = async () => {
+    const text = document.getElementById('typeArea').value.trim();
+    if (!text) return;
+    document.getElementById('typeSubmit').disabled = true;
+    await processFollowUp(entryId, question + '\n\n' + text);
+    document.getElementById('typeArea').value = '';
+    document.getElementById('typeArea').placeholder = 'Write about your day...';
+    document.getElementById('typeSubmit').disabled = false;
+    // Restore normal submit
+    document.getElementById('typeSubmit').onclick = submitTyped;
+  };
+}
+
+async function processFollowUp(entryId, transcript) {
+  const date = dk(curDate);
+  const entry = (entriesCache[date] || []).find(e => e.id === entryId);
+  if (!entry) return;
+
+  showProcessing('Updating entry...');
+  try {
+    const existingSummary = {
+      title: entry.title, mood: entry.mood,
+      key_events: entry.key_events, highlights: entry.highlights,
+      productivity: entry.productivity, goals_and_intentions: entry.goals_and_intentions,
+      health_and_wellbeing: entry.health_and_wellbeing, relationships: entry.relationships,
+      gratitude: entry.gratitude, ideas_and_insights: entry.ideas_and_insights,
+      worries_and_open_loops: entry.worries_and_open_loops, feelings: entry.feelings,
+      tags: entry.tags, other_notes: entry.other_notes,
+    };
+
+    const res = await fetch('/api/summarize', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transcript,
+        date: fmtDate(curDate),
+        existingSummary,
+      }),
+    });
+    if (!res.ok) throw new Error('Summarization failed');
+    const { summary } = await res.json();
+
+    // Append to transcript
+    const newTranscript = (entry.transcript || '') + '\n\n---\n\n' + transcript;
+
+    showProcessing('Saving...');
+    await updateEntry(entryId, {
+      transcript: newTranscript,
+      title: summary.title, mood: summary.mood, tags: summary.tags || [],
+      highlights: summary.highlights || [], feelings: summary.feelings || [],
+      todos: summary.todos || [], gratitude: summary.gratitude || [],
+      key_events: summary.key_events || [], productivity: summary.productivity || [],
+      goals_and_intentions: summary.goals_and_intentions || [],
+      health_and_wellbeing: summary.health_and_wellbeing || [],
+      relationships: summary.relationships || [],
+      ideas_and_insights: summary.ideas_and_insights || [],
+      worries_and_open_loops: summary.worries_and_open_loops || [],
+      other_notes: summary.other_notes || [],
+      follow_up_questions: summary.follow_up_questions || [],
+    });
+    resetRecUI();
+    await loadAndRender();
+
+    // Show new follow-ups if any
+    if (summary.follow_up_questions?.length) {
+      showFollowUps(entryId, summary.follow_up_questions);
+    }
+  } catch (e) {
+    document.getElementById('procText').textContent = e.message;
+    setTimeout(resetRecUI, 2000);
+  }
+}
+
+// === VIEW TABS (Day / Week / Month) ===
+let currentView = 'day';
+let recapDate = new Date();
+
+function setView(view) {
+  currentView = view;
+  document.getElementById('viewDay').classList.toggle('active', view === 'day');
+  document.getElementById('viewWeek').classList.toggle('active', view === 'week');
+  document.getElementById('viewMonth').classList.toggle('active', view === 'month');
+
+  document.getElementById('dayView').style.display = view === 'day' ? 'block' : 'none';
+  document.getElementById('recapView').classList.toggle('show', view !== 'day');
+
+  if (view !== 'day') {
+    recapDate = new Date(curDate);
+    loadRecap(view);
+  }
+}
+
+function getWeekRange(d) {
+  const day = d.getDay();
+  const start = new Date(d); start.setDate(d.getDate() - day);
+  const end = new Date(start); end.setDate(start.getDate() + 6);
+  return { start, end };
+}
+
+function getMonthRange(d) {
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  return { start, end };
+}
+
+function recapNav(dir) {
+  if (currentView === 'week') {
+    recapDate.setDate(recapDate.getDate() + dir * 7);
+  } else {
+    recapDate.setMonth(recapDate.getMonth() + dir);
+  }
+  loadRecap(currentView);
+}
+
+async function loadRecap(type) {
+  const range = type === 'week' ? getWeekRange(recapDate) : getMonthRange(recapDate);
+  const startStr = dk(range.start);
+  const endStr = dk(range.end);
+
+  // Render nav
+  const label = type === 'week'
+    ? `${range.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${range.end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+    : recapDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  document.getElementById('recapNav').innerHTML = `
+    <button onclick="recapNav(-1)"><span class="icon"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></span></button>
+    <span class="recap-period">${label}</span>
+    <button onclick="recapNav(1)"><span class="icon"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span></button>`;
+
+  document.getElementById('recapContent').innerHTML = '<div class="recap-loading"><div class="spin" style="display:inline-block;margin-right:8px"></div>Generating recap...</div>';
+
+  // Fetch entries for this range
+  const { data: entries, error } = await sb.from('journal_entries')
+    .select('*')
+    .gte('date', startStr)
+    .lte('date', endStr)
+    .order('date', { ascending: true });
+
+  if (error || !entries?.length) {
+    document.getElementById('recapContent').innerHTML = `<div class="recap-empty">No entries for this ${type}. Start journaling to see recaps!</div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/recap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, startDate: startStr, endDate: endStr, entries }),
+    });
+    if (!res.ok) throw new Error('Recap generation failed');
+    const { recap } = await res.json();
+    renderRecap(recap);
+  } catch (e) {
+    document.getElementById('recapContent').innerHTML = `<div class="recap-empty">Failed to generate recap: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderRecap(r) {
+  const bul = (items) => items?.length ? `<ul class="bul">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '';
+
+  const sections = [
+    { key: 'top_themes', label: 'Themes' },
+    { key: 'wins', label: 'Wins' },
+    { key: 'challenges', label: 'Challenges' },
+    { key: 'open_loops', label: 'Open Loops' },
+    { key: 'growth_observed', label: 'Growth' },
+    { key: 'patterns_noticed', label: 'Patterns' },
+  ];
+
+  let html = `<div class="recap-card">
+    <div class="recap-title">${esc(r.title || 'Recap')}</div>
+    <div class="recap-subtitle">${esc(r.date_range || '')} · ${r.entry_count || 0} entries</div>
+    ${r.overall_mood ? `<div class="recap-mood">${esc(r.overall_mood)}</div>` : ''}
+    ${r.mood_arc ? `<div class="recap-arc">${esc(r.mood_arc)}</div>` : ''}`;
+
+  sections.forEach(s => {
+    if (r[s.key]?.length) {
+      html += `<div class="recap-sec"><div class="recap-sec-lbl">${s.label}</div>${bul(r[s.key])}</div>`;
+    }
+  });
+
+  if (r.relationships_summary) {
+    html += `<div class="recap-sec"><div class="recap-sec-lbl">Relationships</div><p style="font-size:13px;color:var(--tx);line-height:1.6">${esc(r.relationships_summary)}</p></div>`;
+  }
+  if (r.health_summary) {
+    html += `<div class="recap-sec"><div class="recap-sec-lbl">Health</div><p style="font-size:13px;color:var(--tx);line-height:1.6">${esc(r.health_summary)}</p></div>`;
+  }
+  if (r.suggestion) {
+    html += `<div class="recap-suggestion">${esc(r.suggestion)}</div>`;
+  }
+
+  html += '</div>';
+  document.getElementById('recapContent').innerHTML = html;
+}
+
+// === OVERRIDE processTranscript to include follow-ups and photos ===
+const _origProcessTranscript = processTranscript;
+// We need to redefine processTranscript since it was already defined above
+// So let's patch it instead
 
 // === INIT ===
 checkAuth();

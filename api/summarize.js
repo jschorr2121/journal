@@ -5,14 +5,36 @@ module.exports = async function handler(req, res) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'OpenAI API key not configured' });
 
-  const { transcript, date } = req.body;
+  const { transcript, date, existingSummary } = req.body;
   if (!transcript) return res.status(400).json({ error: 'No transcript provided' });
 
-  const systemPrompt = `You are a personal journal assistant. Take a raw voice transcript or typed entry and produce a clean, structured summary. Output valid JSON with this structure. ONLY include a section if the transcript actually mentions something relevant to it. Omit sections entirely (don't include the key) if nothing in the transcript touches on that topic.
+  const isFollowUp = !!existingSummary;
 
+  const systemPrompt = isFollowUp
+    ? `You are a personal journal assistant. The user already has a journal entry with this existing summary, and has now added a follow-up response. Merge the new content into the existing summary — update sections, add new items, adjust mood/title if appropriate. Also generate 1-2 NEW follow-up questions based on the combined content.
+
+Output valid JSON:
+{
+  "title": "Updated title if the follow-up changes the vibe (2-6 words)",
+  "mood": "Updated mood word",
+  "key_events": [], "productivity": [], "goals_and_intentions": [],
+  "health_and_wellbeing": [], "relationships": [], "gratitude": [],
+  "ideas_and_insights": [], "worries_and_open_loops": [], "feelings": [],
+  "tags": [], "other_notes": [],
+  "follow_up_questions": ["1-2 thoughtful follow-up questions based on the COMBINED entry"]
+}
+
+Rules:
+- MERGE new content with existing — don't lose anything from the original summary
+- Only include sections that have content
+- Follow-up questions should be specific to what they said, not generic
+- Preserve the speaker's authentic voice`
+    : `You are a personal journal assistant. Take a raw voice transcript or typed entry and produce a clean, structured summary. Also generate 1-2 follow-up questions to deepen their reflection.
+
+Output valid JSON:
 {
   "title": "Short evocative title for the day (2-6 words, memorable not generic)",
-  "mood": "Single word that captures the vibe",
+  "mood": "Single word that captures the vibe, this should not be generic",
   "key_events": ["Notable things that happened. For each, note what happened, who was involved, and where if mentioned. Be specific."],
   "productivity": ["Things accomplished, things left unfinished, frustrations or blockers encountered."],
   "goals_and_intentions": ["Tomorrow's priorities and todos, longer-term goals referenced, commitments made."],
@@ -23,18 +45,23 @@ module.exports = async function handler(req, res) {
   "worries_and_open_loops": ["Unresolved concerns, things weighing on them, decisions not yet made, anxieties."],
   "feelings": ["Array of emotions/reflections mentioned - keep the person's voice. These should be actual feelings; if no feelings mentioned, keep blank."],
   "tags": ["lowercase category tags: work, social, health, creative, food, fitness, relationships, money, travel, etc."],
-  "other_notes": ["Anything else mentioned that doesn't fall into the above categories."]
+  "other_notes": ["Anything else mentioned that doesn't fall into the above categories."],
+  "follow_up_questions": ["1-2 specific, thoughtful follow-up questions that reference what the user actually talked about. NOT generic prompts. These should feel like a good therapist or close friend asking a natural follow-up."]
 }
 
 Rules:
-- ONLY include a section if the transcript contains content for it. If they don't mention health at all, do NOT include health_and_wellbeing. If they don't express gratitude, do NOT include gratitude.
-- Preserve the speaker's authentic voice and tone — don't corporatize or sanitize it
+- ONLY include a section if the transcript contains content for it
+- Preserve the speaker's authentic voice and tone
 - Be specific: include names of people, places, restaurants, projects, etc.
-- Each bullet should be concise but substantive (1-2 sentences, not overly wordy)
-- goals_and_intentions should capture ALL todos and plans, even offhand ones ("I should probably..." counts). When in doubt, include it.
+- Each bullet should be concise but substantive (1-2 sentences)
+- goals_and_intentions should capture ALL todos and plans, even offhand ones
 - Title should be vivid and specific ("Crushed the Morgan Stanley demo" not "Productive work day")
-- Mood word should be specific and expressive
-- Tags should reflect the actual content discussed`;
+- Mood word should be specific and expressive, not generic
+- Follow-up questions should be specific to the content, empathetic, and encourage deeper reflection`;
+
+  const userContent = isFollowUp
+    ? `Date: ${date || new Date().toLocaleDateString()}\n\nExisting summary:\n${JSON.stringify(existingSummary, null, 2)}\n\nNew follow-up transcript:\n${transcript}`
+    : `Date: ${date || new Date().toLocaleDateString()}\n\nTranscript:\n${transcript}`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -44,7 +71,7 @@ Rules:
         model: 'gpt-5.4-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Date: ${date || new Date().toLocaleDateString()}\n\nTranscript:\n${transcript}` }
+          { role: 'user', content: userContent }
         ],
         temperature: 0.7,
         response_format: { type: 'json_object' },
