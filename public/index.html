@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%237BAFD4'/><path d='M4 4h8M4 8h6M4 12h7' stroke='white' stroke-width='1.5' stroke-linecap='round'/></svg>">
+<title>Journal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0a0a0c;--s1:#131316;--s2:#1a1a1f;--bd:#242429;--tx:#e4e4e8;--t2:#75757e;--t3:#4e4e56;--ac:#7BAFD4;--ac2:#6a9fc4;--ad:rgba(123,175,212,.12);--rc:#e05252;--gn:#52c48a;--yw:#d4a23a;--r:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100dvh;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+.app{max-width:640px;margin:0 auto;padding:20px 16px 80px}
+button{font-family:inherit;cursor:pointer}
+::selection{background:var(--ad);color:var(--ac)}
+
+/* Auth */
+.auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh;padding:20px}
+.auth-box{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:36px 32px;width:100%;max-width:360px}
+.auth-box h1{font-size:22px;font-weight:600;letter-spacing:-.3px;margin-bottom:2px}
+.auth-box p{color:var(--t2);font-size:13px;margin-bottom:28px}
+.auth-box input{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;color:var(--tx);font-size:13px;margin-bottom:10px;outline:none;transition:border .15s}
+.auth-box input:focus{border-color:var(--ac)}
+.auth-btn{width:100%;padding:10px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;transition:background .15s}
+.auth-btn:hover{background:var(--ac2)}
+.auth-btn:disabled{opacity:.4;cursor:default}
+.auth-toggle{margin-top:14px;font-size:12px;color:var(--t2);text-align:center}
+.auth-toggle a{color:var(--ac);cursor:pointer;text-decoration:none}
+.auth-toggle a:hover{text-decoration:underline}
+.auth-msg{font-size:12px;margin-top:12px;padding:8px 10px;border-radius:6px;text-align:center}
+.auth-msg.ok{color:var(--gn);background:rgba(82,196,138,.08)}
+.auth-msg.err{color:var(--rc);background:rgba(224,82,82,.08)}
+
+/* Header */
+.hdr{padding:8px 0 20px;display:flex;align-items:center;justify-content:space-between}
+.hdr h1{font-size:20px;font-weight:600;letter-spacing:-.3px}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.user-pill{padding:4px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:16px;font-size:11px;color:var(--t2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout-btn{padding:4px 10px;background:none;border:1px solid var(--bd);color:var(--t3);border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s}
+.logout-btn:hover{border-color:var(--rc);color:var(--rc)}
+
+/* Date nav */
+.date-nav{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.date-nav button{background:var(--s1);border:1px solid var(--bd);color:var(--t2);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.date-nav button:hover{border-color:var(--ac);color:var(--ac)}
+.cur-date{font-size:15px;font-weight:500;cursor:pointer;transition:color .15s}
+.cur-date:hover{color:var(--ac)}
+.day-lbl{font-size:12px;color:var(--t3);margin-left:2px}
+.today-btn{margin-left:auto;padding:4px 10px;background:transparent;border:1px solid var(--bd);color:var(--t2);border-radius:6px;cursor:pointer;font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;transition:all .15s}
+.today-btn:hover{border-color:var(--ac);color:var(--ac)}
+
+/* Search */
+.search-bar{margin-bottom:14px;position:relative}
+.search-bar input{width:100%;padding:9px 12px 9px 34px;background:var(--s1);border:1px solid var(--bd);border-radius:8px;color:var(--tx);font-size:13px;outline:none;transition:border .15s}
+.search-bar input:focus{border-color:var(--ac)}
+.search-bar .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--t3)}
+.search-bar .si svg{width:14px;height:14px;display:block}
+.search-results{background:var(--s1);border:1px solid var(--bd);border-radius:8px;margin-top:4px;max-height:280px;overflow-y:auto;display:none}
+.search-results.show{display:block}
+.sr-item{padding:10px 12px;border-bottom:1px solid var(--bd);cursor:pointer;transition:background .1s}
+.sr-item:hover{background:var(--s2)}
+.sr-item:last-child{border-bottom:none}
+.sr-date{font-size:11px;color:var(--t3)}
+.sr-title{font-size:13px;font-weight:500;margin-top:1px}
+.sr-snippet{font-size:12px;color:var(--t2);margin-top:2px}
+
+/* Calendar popup */
+.cal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.cal-overlay.show{display:flex}
+.cal-popup{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:20px;width:300px;max-width:90vw}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-header button{background:none;border:none;color:var(--t2);cursor:pointer;font-size:16px;padding:4px 8px;transition:color .15s}
+.cal-header button:hover{color:var(--ac)}
+.cal-month{font-size:14px;font-weight:500}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.cal-grid .dow{font-size:10px;color:var(--t3);padding:4px 0;font-weight:500}
+.cal-grid .day{padding:7px 0;border-radius:6px;cursor:pointer;font-size:12px;color:var(--tx);position:relative;transition:background .1s}
+.cal-grid .day:hover{background:var(--s2)}
+.cal-grid .day.today{color:var(--ac);font-weight:600}
+.cal-grid .day.active{background:var(--ac);color:#fff}
+.cal-grid .day.has::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:3px;height:3px;background:var(--ac);border-radius:50%}
+.cal-grid .day.other{color:var(--t3);opacity:.3}
+
+/* Stats */
+.stats{display:flex;gap:16px;padding:8px 0;margin-bottom:14px;font-size:12px;color:var(--t2)}
+.stats .sv{color:var(--ac);font-weight:600}
+
+/* Input mode tabs */
+.input-tabs{display:flex;gap:0;border-radius:var(--r) var(--r) 0 0;overflow:hidden;border:1px solid var(--bd);border-bottom:none}
+.input-tab{flex:1;padding:9px;text-align:center;font-size:12px;font-weight:500;cursor:pointer;background:var(--s1);color:var(--t3);transition:all .15s;letter-spacing:.2px}
+.input-tab.active{background:var(--s2);color:var(--tx)}
+.input-tab:hover{color:var(--t2)}
+
+/* Recorder */
+.rec-box{background:var(--s1);border:1px solid var(--bd);border-radius:0 0 var(--r) var(--r);padding:20px;margin-bottom:20px;transition:all .2s}
+.rec-box.active{border-color:var(--rc);box-shadow:0 0 20px rgba(224,82,82,.08)}
+.rec-box.processing{border-color:var(--ac)}
+
+.rec-voice{display:none}
+.rec-voice.show{display:block}
+.rec-top{display:flex;align-items:center;gap:14px}
+.rec-btn{width:48px;height:48px;border-radius:50%;border:2px solid var(--rc);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.rec-btn:hover{background:rgba(224,82,82,.08)}
+.rec-btn.on{background:var(--rc);border-color:var(--rc)}
+.rec-btn .dot{width:16px;height:16px;background:var(--rc);border-radius:50%;transition:all .2s}
+.rec-btn.on .dot{width:14px;height:14px;border-radius:2px;background:#fff}
+.rec-info{flex:1}
+.rec-status{font-size:13px;color:var(--t2)}
+.rec-status.live{color:var(--rc);font-weight:500}
+.rec-timer{font-size:20px;font-weight:300;font-variant-numeric:tabular-nums;color:var(--tx)}
+.live-transcript{margin-top:14px;padding:12px;background:var(--bg);border-radius:8px;font-size:13px;line-height:1.7;min-height:44px;max-height:160px;overflow-y:auto;display:none}
+.live-transcript .interim{color:var(--t3)}
+.live-transcript .final{color:var(--tx)}
+.lt-ph{color:var(--t3);font-style:italic;font-size:12px}
+.rec-actions{display:none;gap:8px;margin-top:12px}
+.rec-actions button{flex:1;padding:9px;border-radius:8px;border:none;font-size:13px;font-weight:500}
+.btn-done{background:var(--ac);color:#fff;transition:background .15s}
+.btn-done:hover{background:var(--ac2)}
+.btn-cancel{background:var(--s2);color:var(--t2);border:1px solid var(--bd)!important;transition:all .15s}
+.btn-cancel:hover{border-color:var(--t3)!important;color:var(--tx)}
+
+/* Text input */
+.rec-text{display:none}
+.rec-text.show{display:block}
+.rec-text textarea{width:100%;min-height:100px;padding:12px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;color:var(--tx);font-size:13px;line-height:1.6;resize:vertical;font-family:inherit;outline:none;transition:border .15s}
+.rec-text textarea:focus{border-color:var(--ac)}
+.rec-text textarea::placeholder{color:var(--t3)}
+.rec-text button{margin-top:8px;width:100%;padding:10px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;transition:background .15s}
+.rec-text button:hover{background:var(--ac2)}
+.rec-text button:disabled{opacity:.4}
+
+.proc{display:none;align-items:center;justify-content:center;gap:8px;margin-top:14px;font-size:13px;color:var(--t2)}
+.spin{width:14px;height:14px;border:2px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* Entry card */
+.entry{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:18px;margin-bottom:10px;animation:fu .25s ease}
+@keyframes fu{from{opacity:0;transform:translateY(4px)}}
+.e-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.e-title{font-size:16px;font-weight:600;letter-spacing:-.2px;color:var(--tx)}
+.e-mood{font-size:12px;color:var(--ac);padding:3px 10px;background:var(--ad);border:1px solid rgba(123,175,212,.15);border-radius:12px}
+.e-meta{font-size:11px;color:var(--t3);margin-top:2px}
+.e-sec{margin-bottom:10px}
+.sec-lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--ac);margin-bottom:5px}
+
+.bul{list-style:none;padding:0}
+.bul li{position:relative;padding:3px 0 3px 14px;font-size:13px;line-height:1.6;color:var(--tx)}
+.bul li::before{content:'';position:absolute;left:0;top:10px;width:4px;height:4px;background:var(--t3);border-radius:50%}
+
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.tag{padding:2px 8px;background:var(--s2);border-radius:4px;font-size:10px;color:var(--t2);letter-spacing:.2px}
+
+/* Edit mode */
+.e-edit-btn{font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;padding:2px 4px;transition:color .15s}
+.e-edit-btn:hover{color:var(--ac)}
+.edit-area{width:100%;min-height:80px;padding:10px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;color:var(--tx);font-size:13px;line-height:1.6;resize:vertical;font-family:inherit;outline:none;margin-top:6px;transition:border .15s}
+.edit-area:focus{border-color:var(--ac)}
+.edit-actions{display:flex;gap:6px;margin-top:8px}
+.edit-actions button{padding:6px 12px;border-radius:6px;border:none;font-size:12px;cursor:pointer;font-weight:500}
+.edit-save{background:var(--ac);color:#fff}
+.edit-cancel{background:var(--s2);color:var(--t2)}
+
+.e-transcript-btn{margin-top:10px;font-size:11px;color:var(--t3);cursor:pointer;background:none;border:none;padding:2px 0;transition:color .15s}
+.e-transcript-btn:hover{color:var(--ac)}
+.e-transcript{margin-top:6px;font-size:12px;color:var(--t2);line-height:1.7;padding:10px;background:var(--bg);border-radius:8px;display:none;max-height:160px;overflow-y:auto}
+.e-transcript.show{display:block}
+
+.e-actions{display:flex;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--bd)}
+.e-actions button{padding:5px 12px;background:var(--s2);border:1px solid var(--bd);color:var(--t2);border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s}
+.e-actions button:hover{background:var(--ad);border-color:var(--ac);color:var(--ac)}
+.e-actions .del{background:rgba(224,82,82,.06)}
+.e-actions .del:hover{background:rgba(224,82,82,.12);border-color:var(--rc);color:var(--rc)}
+
+.empty{text-align:center;padding:48px 16px;color:var(--t3)}
+.empty p{font-size:13px;line-height:1.6}
+
+.exp{display:flex;gap:8px;justify-content:center;margin-top:20px}
+.exp button{padding:6px 14px;background:var(--s2);border:1px solid var(--bd);color:var(--t2);border-radius:8px;font-size:11px;cursor:pointer;transition:all .15s}
+.exp button:hover{background:var(--ad);border-color:var(--ac);color:var(--ac)}
+
+/* Inline edit */
+.inline-edit-input{width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--tx);font-size:13px;line-height:1.5;font-family:inherit;outline:none;margin:2px 0;transition:border .15s}
+.inline-edit-input:focus{border-color:var(--ac)}
+.inline-edit-row{display:flex;align-items:center;gap:6px;margin:3px 0}
+.inline-edit-row .inline-edit-input{flex:1}
+.inline-rm{background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:2px 4px;line-height:1;transition:color .15s}
+.inline-rm:hover{color:var(--rc)}
+.inline-add{font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;padding:4px 0;transition:color .15s}
+.inline-add:hover{color:var(--ac)}
+.edit-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.edit-header input{flex:1;padding:6px 8px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--tx);font-size:16px;font-weight:600;font-family:inherit;outline:none}
+.edit-header input:focus{border-color:var(--ac)}
+.edit-header .mood-input{width:100px;font-size:13px;font-weight:400}
+
+/* SVG icons inline */
+.icon{display:inline-flex;align-items:center;vertical-align:middle}
+.icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+@media(max-width:600px){.app{padding:12px 12px 80px}.entry{padding:14px}}
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="authScreen" class="auth-screen" style="display:none">
+  <div class="auth-box">
+    <h1>Journal</h1>
+    <p>Voice-powered daily journaling</p>
+    <div id="authForm">
+      <input type="email" id="authEmail" placeholder="Email address" autocomplete="email">
+      <input type="password" id="authPass" placeholder="Password" autocomplete="current-password">
+      <button class="auth-btn" id="authBtn" onclick="doAuth()">Sign In</button>
+      <div class="auth-toggle">
+        <span id="authToggleText">Don't have an account?</span>
+        <a id="authToggleLink" onclick="toggleAuthMode()">Sign Up</a>
+      </div>
+    </div>
+    <div id="authMsg" class="auth-msg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="mainApp" class="app" style="display:none">
+  <div class="hdr">
+    <h1>Journal</h1>
+    <div class="hdr-right">
+      <span class="user-pill" id="userPill"></span>
+      <button class="logout-btn" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="date-nav">
+    <button onclick="nav(-1)"><span class="icon"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></span></button>
+    <span class="cur-date" id="curDate" onclick="openCal()"></span>
+    <span class="day-lbl" id="dayLbl"></span>
+    <button onclick="nav(1)"><span class="icon"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span></button>
+    <button class="today-btn" onclick="goToday()">Today</button>
+  </div>
+
+  <div class="search-bar">
+    <span class="si"><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+    <input type="text" id="searchInput" placeholder="Search entries..." oninput="debounceSearch()" onfocus="this.value&&doSearch()">
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="input-tabs">
+    <div class="input-tab active" id="tabVoice" onclick="setInputMode('voice')">Voice</div>
+    <div class="input-tab" id="tabType" onclick="setInputMode('type')">Write</div>
+  </div>
+
+  <div class="rec-box" id="recBox">
+    <div class="rec-voice show" id="recVoice">
+      <div class="rec-top">
+        <button class="rec-btn" id="recBtn" onclick="startRec()"><div class="dot"></div></button>
+        <div class="rec-info">
+          <div class="rec-status" id="recStatus">Tap to start recording</div>
+          <div class="rec-timer" id="recTimer" style="display:none">0:00</div>
+        </div>
+      </div>
+      <div class="live-transcript" id="liveTr"><span class="lt-ph">Your words appear here as you speak...</span></div>
+      <div class="rec-actions" id="recActions">
+        <button class="btn-cancel" onclick="cancelRec()">Cancel</button>
+        <button class="btn-done" onclick="finishRec()">Save</button>
+      </div>
+    </div>
+    <div class="rec-text" id="recText">
+      <textarea id="typeArea" placeholder="Write about your day..."></textarea>
+      <button id="typeSubmit" onclick="submitTyped()">Save Entry</button>
+    </div>
+    <div class="proc" id="proc"><div class="spin"></div><span id="procText">Summarizing...</span></div>
+  </div>
+
+  <div id="entries"></div>
+  <div class="exp">
+    <button onclick="exportAll()">Export</button>
+    <button onclick="copyCurrent()">Copy</button>
+  </div>
+</div>
+
+<!-- Calendar Popup -->
+<div class="cal-overlay" id="calOverlay" onclick="if(event.target===this)closeCal()">
+  <div class="cal-popup">
+    <div class="cal-header">
+      <button onclick="calNav(-1)"><span class="icon"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></span></button>
+      <span class="cal-month" id="calMonth"></span>
+      <button onclick="calNav(1)"><span class="icon"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span></button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+</div>
+
+<script>
+// === SUPABASE INIT ===
+const SUPABASE_URL = 'https://ylumnionnehgebofvihl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_aEQ9h9LSP6GN1usx_x2ZUA_-Ysjy92Q';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// === STATE ===
+let user = null;
+let curDate = new Date();
+let calDate = new Date();
+let entriesCache = {};
+let allDates = new Set();
+let isRecording = false;
+let recognition = null;
+let finalTranscript = '';
+let interimTranscript = '';
+let recStart = null;
+let timerInt = null;
+let searchTimeout = null;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+// === AUTH ===
+let authMode = 'signin';
+
+async function checkAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { user = session.user; showApp(); }
+  else document.getElementById('authScreen').style.display = 'flex';
+}
+
+function toggleAuthMode() {
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  document.getElementById('authBtn').textContent = authMode === 'signin' ? 'Sign In' : 'Sign Up';
+  document.getElementById('authToggleText').textContent = authMode === 'signin' ? "Don't have an account?" : 'Already have an account?';
+  document.getElementById('authToggleLink').textContent = authMode === 'signin' ? 'Sign Up' : 'Sign In';
+  hideAuthMsg();
+}
+
+async function doAuth() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPass').value;
+  if (!email || !pass) return showAuthMsg('Enter email and password', 'err');
+  if (pass.length < 6) return showAuthMsg('Password must be at least 6 characters', 'err');
+  document.getElementById('authBtn').disabled = true;
+  try {
+    let result;
+    if (authMode === 'signup') {
+      result = await sb.auth.signUp({ email, password: pass });
+      if (result.error) throw result.error;
+      if (result.data.user && !result.data.session) {
+        showAuthMsg('Check your email to confirm your account.', 'ok');
+        document.getElementById('authBtn').disabled = false;
+        return;
+      }
+    } else {
+      result = await sb.auth.signInWithPassword({ email, password: pass });
+      if (result.error) throw result.error;
+    }
+    user = result.data.user;
+    showApp();
+  } catch (e) { showAuthMsg(e.message || 'Authentication failed', 'err'); }
+  document.getElementById('authBtn').disabled = false;
+}
+
+function showAuthMsg(msg, type) {
+  const el = document.getElementById('authMsg');
+  el.textContent = msg; el.className = `auth-msg ${type}`; el.style.display = 'block';
+}
+function hideAuthMsg() { document.getElementById('authMsg').style.display = 'none'; }
+
+async function logout() {
+  await sb.auth.signOut();
+  user = null;
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+}
+
+async function showApp() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('userPill').textContent = user.email;
+  await fetchAllDates();
+  await loadAndRender();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('authScreen').style.display === 'flex') doAuth();
+});
+
+// === DATABASE ===
+async function fetchEntries(date) {
+  const { data, error } = await sb.from('journal_entries').select('*').eq('date', date).order('created_at', { ascending: false });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+async function saveEntry(date, transcript, summary, duration) {
+  const row = {
+    date, transcript, user_id: user.id, duration_seconds: duration,
+    title: summary?.title, mood: summary?.mood, tags: summary?.tags || [],
+    highlights: summary?.highlights || [], feelings: summary?.feelings || [],
+    todos: summary?.todos || [], gratitude: summary?.gratitude || [],
+    key_events: summary?.key_events || [], productivity: summary?.productivity || [],
+    goals_and_intentions: summary?.goals_and_intentions || [],
+    health_and_wellbeing: summary?.health_and_wellbeing || [],
+    relationships: summary?.relationships || [],
+    ideas_and_insights: summary?.ideas_and_insights || [],
+    worries_and_open_loops: summary?.worries_and_open_loops || [],
+    other_notes: summary?.other_notes || [],
+  };
+  const { data, error } = await sb.from('journal_entries').insert(row).select();
+  if (error) throw error;
+  return data[0];
+}
+
+async function updateEntry(id, updates) {
+  const { data, error } = await sb.from('journal_entries').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select();
+  if (error) throw error;
+  return data[0];
+}
+
+async function deleteEntry(id) {
+  await sb.from('journal_entries').delete().eq('id', id);
+}
+
+async function fetchAllDates() {
+  const { data } = await sb.from('journal_entries').select('date');
+  allDates = new Set((data || []).map(e => e.date));
+}
+
+async function searchEntries(query) {
+  const q = `%${query}%`;
+  const { data } = await sb.from('journal_entries')
+    .select('id,date,title,mood,transcript')
+    .or(`transcript.ilike.${q},title.ilike.${q}`)
+    .order('date', { ascending: false })
+    .limit(20);
+  return data || [];
+}
+
+// === SPEECH ===
+function startRec() {
+  if (isRecording) return;
+  if (!SR) { alert('Speech recognition not supported. Use Chrome or Safari.'); return; }
+  isRecording = true;
+  finalTranscript = '';
+  interimTranscript = '';
+  recStart = Date.now();
+
+  recognition = new SR();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = e => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+      else interim = e.results[i][0].transcript;
+    }
+    if (final) finalTranscript += final;
+    interimTranscript = interim;
+    const el = document.getElementById('liveTr');
+    el.innerHTML = `<span class="final">${finalTranscript}</span><span class="interim">${interimTranscript}</span>`;
+    el.scrollTop = el.scrollHeight;
+  };
+  recognition.onend = () => { if (isRecording) try { recognition.start(); } catch(e) {} };
+  recognition.onerror = e => { if (e.error !== 'no-speech' && e.error !== 'aborted') console.error(e); };
+  recognition.start();
+
+  document.getElementById('recBtn').classList.add('on');
+  document.getElementById('recBox').classList.add('active');
+  document.getElementById('recStatus').textContent = 'Listening...';
+  document.getElementById('recStatus').classList.add('live');
+  document.getElementById('recTimer').style.display = 'block';
+  document.getElementById('liveTr').style.display = 'block';
+  document.getElementById('liveTr').innerHTML = '<span class="lt-ph">Speak naturally...</span>';
+  document.getElementById('recActions').style.display = 'flex';
+  timerInt = setInterval(() => {
+    const s = Math.floor((Date.now() - recStart) / 1000);
+    document.getElementById('recTimer').textContent = `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+  }, 1000);
+}
+
+function cancelRec() {
+  isRecording = false;
+  if (recognition) recognition.stop();
+  clearInterval(timerInt);
+  resetRecUI();
+}
+
+async function finishRec() {
+  isRecording = false;
+  if (recognition) recognition.stop();
+  clearInterval(timerInt);
+  const transcript = (finalTranscript + interimTranscript).trim();
+  const duration = Math.floor((Date.now() - recStart) / 1000);
+  if (!transcript) { resetRecUI(); return; }
+  await processTranscript(transcript, duration);
+}
+
+async function submitTyped() {
+  const text = document.getElementById('typeArea').value.trim();
+  if (!text) return;
+  document.getElementById('typeSubmit').disabled = true;
+  await processTranscript(text, null);
+  document.getElementById('typeArea').value = '';
+  document.getElementById('typeSubmit').disabled = false;
+}
+
+async function processTranscript(transcript, duration) {
+  showProcessing('Summarizing...');
+  try {
+    const res = await fetch('/api/summarize', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript, date: fmtDate(curDate) }),
+    });
+    if (!res.ok) throw new Error('Summarization failed');
+    const { summary } = await res.json();
+    showProcessing('Saving...');
+    await saveEntry(dk(curDate), transcript, summary, duration);
+    allDates.add(dk(curDate));
+    resetRecUI();
+    await loadAndRender();
+  } catch (e) {
+    document.getElementById('procText').textContent = e.message;
+    setTimeout(resetRecUI, 2000);
+  }
+}
+
+function showProcessing(text) {
+  document.getElementById('recActions').style.display = 'none';
+  document.getElementById('recBox').classList.remove('active');
+  document.getElementById('recBox').classList.add('processing');
+  document.getElementById('proc').style.display = 'flex';
+  document.getElementById('procText').textContent = text;
+  document.getElementById('recStatus').textContent = '';
+  document.getElementById('recStatus').classList.remove('live');
+}
+
+function resetRecUI() {
+  document.getElementById('recBox').classList.remove('active','processing');
+  document.getElementById('recBtn').classList.remove('on');
+  document.getElementById('recStatus').textContent = 'Tap to start recording';
+  document.getElementById('recStatus').classList.remove('live');
+  document.getElementById('recTimer').style.display = 'none';
+  document.getElementById('recTimer').textContent = '0:00';
+  document.getElementById('liveTr').style.display = 'none';
+  document.getElementById('recActions').style.display = 'none';
+  document.getElementById('proc').style.display = 'none';
+}
+
+function setInputMode(mode) {
+  document.getElementById('tabVoice').classList.toggle('active', mode === 'voice');
+  document.getElementById('tabType').classList.toggle('active', mode === 'type');
+  document.getElementById('recVoice').classList.toggle('show', mode === 'voice');
+  document.getElementById('recText').classList.toggle('show', mode === 'type');
+}
+
+// === SEARCH ===
+function debounceSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(doSearch, 300);
+}
+
+async function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  const el = document.getElementById('searchResults');
+  if (!q) { el.classList.remove('show'); return; }
+  const results = await searchEntries(q);
+  if (!results.length) {
+    el.innerHTML = '<div class="sr-item" style="color:var(--t3)">No results found</div>';
+    el.classList.add('show');
+    return;
+  }
+  el.innerHTML = results.map(r => `
+    <div class="sr-item" onclick="goDate('${r.date}');document.getElementById('searchResults').classList.remove('show');document.getElementById('searchInput').value='';">
+      <div class="sr-date">${r.date}</div>
+      <div class="sr-title">${r.title||'Entry'}</div>
+      <div class="sr-snippet">${(r.transcript||'').substring(0,100)}...</div>
+    </div>
+  `).join('');
+  el.classList.add('show');
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-bar')) document.getElementById('searchResults').classList.remove('show');
+});
+
+// === CALENDAR ===
+function openCal() { calDate = new Date(curDate); renderCal(); document.getElementById('calOverlay').classList.add('show'); }
+function closeCal() { document.getElementById('calOverlay').classList.remove('show'); }
+function calNav(d) { calDate.setMonth(calDate.getMonth() + d); renderCal(); }
+
+function renderCal() {
+  const y = calDate.getFullYear(), m = calDate.getMonth();
+  document.getElementById('calMonth').textContent = calDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const grid = document.getElementById('calGrid');
+  const today = dk(new Date());
+  const active = dk(curDate);
+  let html = ['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => `<div class="dow">${d}</div>`).join('');
+
+  const first = new Date(y, m, 1);
+  const startDay = first.getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  const prevDays = new Date(y, m, 0).getDate();
+  for (let i = startDay - 1; i >= 0; i--) {
+    const d = new Date(y, m - 1, prevDays - i);
+    html += `<div class="day other" onclick="pickCalDate('${dk(d)}')">${prevDays - i}</div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(y, m, d);
+    const key = dk(date);
+    const cls = [key === today ? 'today' : '', key === active ? 'active' : '', allDates.has(key) ? 'has' : ''].filter(Boolean).join(' ');
+    html += `<div class="day ${cls}" onclick="pickCalDate('${key}')">${d}</div>`;
+  }
+
+  const totalCells = startDay + daysInMonth;
+  const remaining = (7 - totalCells % 7) % 7;
+  for (let d = 1; d <= remaining; d++) {
+    const date = new Date(y, m + 1, d);
+    html += `<div class="day other" onclick="pickCalDate('${dk(date)}')">${d}</div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function pickCalDate(dateStr) { curDate = new Date(dateStr + 'T12:00:00'); closeCal(); loadAndRender(); }
+
+// === NAVIGATION ===
+function dk(d) { return d.toLocaleDateString('en-CA'); }
+function fmtDate(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+function dow(d) { return d.toLocaleDateString('en-US', { weekday: 'long' }); }
+function isToday(d) { return dk(d) === dk(new Date()); }
+function nav(d) { curDate.setDate(curDate.getDate() + d); loadAndRender(); }
+function goToday() { curDate = new Date(); loadAndRender(); }
+function goDate(s) { curDate = new Date(s + 'T12:00:00'); loadAndRender(); }
+
+// === RENDER ===
+async function loadAndRender() {
+  const date = dk(curDate);
+  const entries = await fetchEntries(date);
+  entriesCache[date] = entries;
+  render(entries);
+}
+
+function render(entries) {
+  document.getElementById('curDate').textContent = fmtDate(curDate);
+  document.getElementById('dayLbl').textContent = dow(curDate);
+
+  let streak = 0;
+  const t = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(t); d.setDate(d.getDate() - i);
+    if (allDates.has(dk(d))) streak++; else if (i > 0) break;
+  }
+  document.getElementById('stats').innerHTML = `<span><span class="sv">${streak}</span> day streak</span><span><span class="sv">${allDates.size}</span> total entries</span><span><span class="sv">${entries.length}</span> today</span>`;
+
+  const c = document.getElementById('entries');
+  if (!entries.length) {
+    c.innerHTML = `<div class="empty"><p>${isToday(curDate) ? 'No entries yet. Record or write your first entry for today.' : 'No entries for this day.'}</p></div>`;
+    return;
+  }
+  c.innerHTML = entries.map(renderEntry).join('');
+}
+
+function renderEntry(e) {
+  const bul = (items) => items?.length ? `<ul class="bul">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '';
+  const dur = e.duration_seconds ? `${Math.floor(e.duration_seconds / 60)}m ${e.duration_seconds % 60}s` : '';
+  const time = e.created_at ? new Date(e.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+
+  const sections = [
+    { key: 'key_events', label: 'Key Events' },
+    { key: 'highlights', label: 'Highlights' },
+    { key: 'productivity', label: 'Productivity' },
+    { key: 'goals_and_intentions', label: 'Goals' },
+    { key: 'todos', label: 'To-Do' },
+    { key: 'health_and_wellbeing', label: 'Health' },
+    { key: 'relationships', label: 'Relationships' },
+    { key: 'feelings', label: 'Feelings' },
+    { key: 'gratitude', label: 'Gratitude' },
+    { key: 'ideas_and_insights', label: 'Ideas' },
+    { key: 'worries_and_open_loops', label: 'Open Loops' },
+    { key: 'other_notes', label: 'Notes' },
+  ];
+
+  const sectionsHtml = sections
+    .filter(s => e[s.key]?.length)
+    .map(s => `<div class="e-sec"><div class="sec-lbl">${s.label}</div>${bul(e[s.key])}</div>`)
+    .join('');
+
+  return `
+    <div class="entry" id="entry-${e.id}">
+      <div class="e-head">
+        <div>
+          <div class="e-title">${esc(e.title || 'Journal Entry')} <button class="e-edit-btn" onclick="editSummary('${e.id}')">edit</button></div>
+          <div class="e-meta">${time}${dur ? ' · ' + dur : ''}</div>
+        </div>
+        ${e.mood ? `<div class="e-mood">${esc(e.mood)}</div>` : ''}
+      </div>
+      <div id="summary-${e.id}">
+        ${sectionsHtml}
+        ${e.tags?.length ? `<div class="tags">${e.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
+      </div>
+      <button class="e-transcript-btn" onclick="toggleTranscript('${e.id}')">Transcript${dur ? ' (' + dur + ')' : ''}</button>
+      <button class="e-edit-btn" onclick="event.stopPropagation();editTranscript('${e.id}')">edit</button>
+      <div class="e-transcript" id="tr-${e.id}">${esc(e.transcript || '')}</div>
+      <div class="e-actions">
+        <button onclick="copyEntry('${e.id}')">Copy</button>
+        <button onclick="resummarize('${e.id}')">Re-summarize</button>
+        <button class="del" onclick="delEntry('${e.id}')">Delete</button>
+      </div>
+    </div>`;
+}
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function toggleTranscript(id) { document.getElementById('tr-' + id).classList.toggle('show'); }
+
+// === EDIT ===
+function editTranscript(id) {
+  const date = dk(curDate);
+  const entry = (entriesCache[date] || []).find(e => e.id === id);
+  if (!entry) return;
+  const el = document.getElementById('tr-' + id);
+  el.classList.add('show');
+  el.innerHTML = `
+    <textarea class="edit-area" id="editTr-${id}">${esc(entry.transcript)}</textarea>
+    <div class="edit-actions">
+      <button class="edit-save" onclick="saveTranscript('${id}')">Save</button>
+      <button class="edit-cancel" onclick="loadAndRender()">Cancel</button>
+    </div>`;
+}
+
+async function saveTranscript(id) {
+  const text = document.getElementById('editTr-' + id).value.trim();
+  if (!text) return;
+  await updateEntry(id, { transcript: text });
+  await loadAndRender();
+}
+
+const ALL_SECTIONS = [
+  { key: 'key_events', label: 'Key Events' },
+  { key: 'highlights', label: 'Highlights' },
+  { key: 'productivity', label: 'Productivity' },
+  { key: 'goals_and_intentions', label: 'Goals' },
+  { key: 'todos', label: 'To-Do' },
+  { key: 'health_and_wellbeing', label: 'Health' },
+  { key: 'relationships', label: 'Relationships' },
+  { key: 'feelings', label: 'Feelings' },
+  { key: 'gratitude', label: 'Gratitude' },
+  { key: 'ideas_and_insights', label: 'Ideas' },
+  { key: 'worries_and_open_loops', label: 'Open Loops' },
+  { key: 'other_notes', label: 'Notes' },
+];
+
+function editSummary(id) {
+  const date = dk(curDate);
+  const entry = (entriesCache[date] || []).find(e => e.id === id);
+  if (!entry) return;
+
+  // Title + mood header
+  let html = `<div class="edit-header">
+    <input type="text" id="editTitle-${id}" value="${esc(entry.title || '')}" placeholder="Title">
+    <input type="text" id="editMood-${id}" class="mood-input" value="${esc(entry.mood || '')}" placeholder="Mood">
+  </div>`;
+
+  // Each section with items
+  ALL_SECTIONS.forEach(s => {
+    const items = entry[s.key] || [];
+    if (!items.length) return;
+    html += `<div class="e-sec" data-section="${s.key}">
+      <div class="sec-lbl">${s.label}</div>
+      <div id="editSec-${id}-${s.key}">`;
+    items.forEach((item, i) => {
+      html += `<div class="inline-edit-row">
+        <input class="inline-edit-input" value="${esc(item)}" data-key="${s.key}" data-idx="${i}">
+        <button class="inline-rm" onclick="this.parentElement.remove()" title="Remove">×</button>
+      </div>`;
+    });
+    html += `</div>
+      <button class="inline-add" onclick="addEditRow('${id}','${s.key}')">+ Add item</button>
+    </div>`;
+  });
+
+  // Tags
+  html += `<div class="e-sec">
+    <div class="sec-lbl">Tags</div>
+    <input class="inline-edit-input" id="editTags-${id}" value="${esc((entry.tags || []).join(', '))}" placeholder="comma-separated tags">
+  </div>`;
+
+  html += `<div class="edit-actions">
+    <button class="edit-save" onclick="saveSummary('${id}')">Save</button>
+    <button class="edit-cancel" onclick="loadAndRender()">Cancel</button>
+  </div>`;
+
+  document.getElementById('summary-' + id).innerHTML = html;
+}
+
+function addEditRow(id, key) {
+  const container = document.getElementById(`editSec-${id}-${key}`);
+  const idx = container.children.length;
+  const row = document.createElement('div');
+  row.className = 'inline-edit-row';
+  row.innerHTML = `<input class="inline-edit-input" value="" data-key="${key}" data-idx="${idx}" placeholder="New item...">
+    <button class="inline-rm" onclick="this.parentElement.remove()" title="Remove">×</button>`;
+  container.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+async function saveSummary(id) {
+  const updates = {
+    title: document.getElementById(`editTitle-${id}`).value.trim(),
+    mood: document.getElementById(`editMood-${id}`).value.trim(),
+    tags: (document.getElementById(`editTags-${id}`)?.value || '').split(',').map(t => t.trim()).filter(Boolean),
+  };
+
+  // Collect all section items from inputs
+  ALL_SECTIONS.forEach(s => {
+    const container = document.getElementById(`editSec-${id}-${s.key}`);
+    if (!container) { updates[s.key] = []; return; }
+    const inputs = container.querySelectorAll('.inline-edit-input');
+    updates[s.key] = Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
+  });
+
+  await updateEntry(id, updates);
+  await loadAndRender();
+}
+
+async function resummarize(id) {
+  const date = dk(curDate);
+  const entry = (entriesCache[date] || []).find(e => e.id === id);
+  if (!entry || !confirm('Re-summarize this entry?')) return;
+  try {
+    const res = await fetch('/api/summarize', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: entry.transcript, date: fmtDate(curDate) }),
+    });
+    const { summary } = await res.json();
+    await updateEntry(id, {
+      title: summary.title, mood: summary.mood, tags: summary.tags || [],
+      highlights: summary.highlights || [], feelings: summary.feelings || [],
+      todos: summary.todos || [], gratitude: summary.gratitude || [],
+      key_events: summary.key_events || [], productivity: summary.productivity || [],
+      goals_and_intentions: summary.goals_and_intentions || [],
+      health_and_wellbeing: summary.health_and_wellbeing || [],
+      relationships: summary.relationships || [],
+      ideas_and_insights: summary.ideas_and_insights || [],
+      worries_and_open_loops: summary.worries_and_open_loops || [],
+      other_notes: summary.other_notes || [],
+    });
+    await loadAndRender();
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
+// === ACTIONS ===
+function copyEntry(id) {
+  const entry = (entriesCache[dk(curDate)] || []).find(e => e.id === id);
+  if (!entry) return;
+  let t = `# ${fmtDate(curDate)} — ${entry.title || 'Entry'}\n\n`;
+  if (entry.highlights?.length) t += `## Highlights\n${entry.highlights.map(h => `- ${h}`).join('\n')}\n\n`;
+  if (entry.feelings?.length) t += `## Feelings\n${entry.feelings.map(f => `- ${f}`).join('\n')}\n\n`;
+  if (entry.todos?.length) t += `## To-Do\n${entry.todos.map(x => `- ${x}`).join('\n')}\n\n`;
+  if (entry.gratitude?.length) t += `## Gratitude\n${entry.gratitude.map(g => `- ${g}`).join('\n')}\n\n`;
+  navigator.clipboard.writeText(t);
+}
+
+async function delEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  await deleteEntry(id);
+  const date = dk(curDate);
+  entriesCache[date] = (entriesCache[date] || []).filter(e => e.id !== id);
+  if (!entriesCache[date].length) allDates.delete(date);
+  render(entriesCache[date]);
+}
+
+function copyCurrent() { (entriesCache[dk(curDate)] || []).forEach(e => copyEntry(e.id)); }
+
+async function exportAll() {
+  const { data } = await sb.from('journal_entries').select('*').order('date', { ascending: false });
+  let md = '# Journal Export\n\n';
+  (data || []).forEach(e => {
+    md += `---\n## ${e.date} — ${e.title || 'Entry'}\n`;
+    if (e.highlights?.length) md += `\n### Highlights\n${e.highlights.map(h => `- ${h}`).join('\n')}\n`;
+    if (e.feelings?.length) md += `\n### Feelings\n${e.feelings.map(f => `- ${f}`).join('\n')}\n`;
+    if (e.todos?.length) md += `\n### To-Do\n${e.todos.map(t => `- ${t}`).join('\n')}\n`;
+    md += `\n> ${e.transcript}\n\n`;
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' }));
+  a.download = 'journal-export.md'; a.click();
+}
+
+// === INIT ===
+checkAuth();
+</script>
+</body>
+</html>
