@@ -24,7 +24,9 @@ module.exports = async function handler(req, res) {
   const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-  const baseUrl = process.env.VERCEL_URL || process.env.BASE_URL;
+  // Strip any protocol prefix so we can safely prepend https://
+  const rawBase = process.env.BASE_URL || process.env.VERCEL_URL || '';
+  const baseUrl = rawBase.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
   if (!accountSid || !authToken || !twilioPhone) {
     return res.status(500).json({ error: 'Missing Twilio configuration' });
@@ -75,6 +77,7 @@ module.exports = async function handler(req, res) {
       // Pass user_id in the webhook URL so twilio-voice knows which user
       // this recording should be saved for.
       const voiceUrl = `https://${baseUrl}/api/twilio-voice?user_id=${encodeURIComponent(userId)}`;
+      console.log(`Voice webhook URL for user ${userId}:`, voiceUrl);
 
       try {
         const call = await client.calls.create({
