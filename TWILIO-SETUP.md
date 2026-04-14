@@ -22,7 +22,12 @@ Add these to your Vercel environment variables:
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=your_auth_token_here
 TWILIO_PHONE_NUMBER=+1234567890  # Your Twilio phone number
-USER_PHONE_NUMBER=+1234567890    # Your personal phone number
+
+# User phone numbers now come from the `profiles` table per user —
+# set yours in the app via the Settings gear icon in the header.
+
+# Vercel cron auth (protects /api/initiate-call from public GETs)
+CRON_SECRET=jake
 
 # Base URL (for webhooks)
 BASE_URL=your-journal-app.vercel.app
@@ -107,7 +112,7 @@ You should receive a call immediately. The workflow:
 ## Troubleshooting
 
 ### Call doesn't connect
-- Check USER_PHONE_NUMBER is in E.164 format: `+1234567890`
+- Check your phone in the app's Settings gear icon — must be E.164 format: `+15551234567`
 - Verify Twilio number is configured correctly
 - Check Twilio Console > Monitor > Logs for error messages
 

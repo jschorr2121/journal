@@ -42,6 +42,30 @@ button{font-family:inherit;cursor:pointer}
 .user-pill{padding:4px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:16px;font-size:11px;color:var(--t2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .logout-btn{padding:4px 10px;background:none;border:1px solid var(--bd);color:var(--t3);border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s}
 .logout-btn:hover{border-color:var(--rc);color:var(--rc)}
+.settings-btn{padding:4px 8px;background:none;border:1px solid var(--bd);color:var(--t3);border-radius:6px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.settings-btn:hover{border-color:var(--ac);color:var(--ac)}
+.settings-btn svg{width:14px;height:14px;display:block}
+
+/* Settings modal */
+.settings-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:150;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.settings-overlay.show{display:flex}
+.settings-popup{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:24px;width:360px;max-width:92vw}
+.settings-popup h2{font-size:16px;font-weight:600;margin-bottom:4px;letter-spacing:-.2px}
+.settings-popup .sub{font-size:12px;color:var(--t2);margin-bottom:18px}
+.settings-field{margin-bottom:14px}
+.settings-field label{display:block;font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;font-weight:500}
+.settings-field input{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;color:var(--tx);font-size:13px;outline:none;transition:border .15s;font-family:inherit}
+.settings-field input:focus{border-color:var(--ac)}
+.settings-field .hint{font-size:11px;color:var(--t3);margin-top:5px;line-height:1.4}
+.settings-actions{display:flex;gap:8px;margin-top:18px}
+.settings-btn-primary{flex:1;padding:10px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s}
+.settings-btn-primary:hover{background:var(--ac2)}
+.settings-btn-primary:disabled{opacity:.4;cursor:default}
+.settings-btn-cancel{padding:10px 14px;background:transparent;color:var(--t2);border:1px solid var(--bd);border-radius:8px;font-size:13px;cursor:pointer;transition:all .15s}
+.settings-btn-cancel:hover{color:var(--tx);border-color:var(--t3)}
+.settings-msg{font-size:12px;margin-top:12px;padding:8px 10px;border-radius:6px;text-align:center;display:none}
+.settings-msg.ok{color:var(--gn);background:rgba(82,196,138,.08);display:block}
+.settings-msg.err{color:var(--rc);background:rgba(224,82,82,.08);display:block}
 
 /* Date nav */
 .date-nav{display:flex;align-items:center;gap:8px;margin-bottom:14px}
@@ -278,6 +302,9 @@ button{font-family:inherit;cursor:pointer}
     <h1>Journal</h1>
     <div class="hdr-right">
       <span class="user-pill" id="userPill"></span>
+      <button class="settings-btn" onclick="openSettings()" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
       <button class="logout-btn" onclick="logout()">Sign out</button>
     </div>
   </div>
@@ -380,6 +407,24 @@ button{font-family:inherit;cursor:pointer}
   </div>
 </div>
 
+<!-- Settings Popup -->
+<div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-popup">
+    <h2>Settings</h2>
+    <p class="sub">Daily journal call preferences</p>
+    <div class="settings-field">
+      <label for="settingsPhone">Phone number</label>
+      <input type="tel" id="settingsPhone" placeholder="+15551234567" autocomplete="tel">
+      <div class="hint">Used for the nightly 10:30pm ET journal call. Format: +[country code][number], e.g. +15551234567. Leave blank to disable calls.</div>
+    </div>
+    <div id="settingsMsg" class="settings-msg"></div>
+    <div class="settings-actions">
+      <button class="settings-btn-cancel" onclick="closeSettings()">Cancel</button>
+      <button class="settings-btn-primary" id="settingsSaveBtn" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // === SUPABASE INIT ===
 const SUPABASE_URL = 'https://ylumnionnehgebofvihl.supabase.co';
@@ -455,6 +500,61 @@ async function logout() {
   user = null;
   document.getElementById('mainApp').style.display = 'none';
   document.getElementById('authScreen').style.display = 'flex';
+}
+
+// === SETTINGS ===
+async function openSettings() {
+  const overlay = document.getElementById('settingsOverlay');
+  const phoneInput = document.getElementById('settingsPhone');
+  const msg = document.getElementById('settingsMsg');
+  msg.style.display = 'none';
+  msg.className = 'settings-msg';
+  phoneInput.value = '';
+  overlay.classList.add('show');
+  // Load existing profile (if any). Missing row is fine — user hasn't saved yet.
+  try {
+    const { data, error } = await sb.from('profiles').select('phone_number').eq('user_id', user.id).maybeSingle();
+    if (error) throw error;
+    if (data && data.phone_number) phoneInput.value = data.phone_number;
+  } catch (e) {
+    console.error('Failed to load profile:', e);
+  }
+  phoneInput.focus();
+}
+
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('show');
+}
+
+async function saveSettings() {
+  const phoneInput = document.getElementById('settingsPhone');
+  const msg = document.getElementById('settingsMsg');
+  const btn = document.getElementById('settingsSaveBtn');
+  const raw = phoneInput.value.trim();
+  const phone = raw === '' ? null : raw;
+
+  // Light validation: if set, must look like E.164 (+ then 10-15 digits)
+  if (phone !== null && !/^\+[1-9]\d{7,14}$/.test(phone)) {
+    msg.textContent = 'Phone must be in E.164 format, e.g. +15551234567';
+    msg.className = 'settings-msg err';
+    return;
+  }
+
+  btn.disabled = true;
+  try {
+    const { error } = await sb.from('profiles').upsert({
+      user_id: user.id,
+      phone_number: phone,
+    }, { onConflict: 'user_id' });
+    if (error) throw error;
+    msg.textContent = phone ? 'Saved. Nightly calls enabled.' : 'Saved. Nightly calls disabled.';
+    msg.className = 'settings-msg ok';
+    setTimeout(() => closeSettings(), 900);
+  } catch (e) {
+    msg.textContent = e.message || 'Failed to save settings';
+    msg.className = 'settings-msg err';
+  }
+  btn.disabled = false;
 }
 
 async function showApp() {
