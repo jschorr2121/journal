@@ -40,7 +40,7 @@ module.exports = async function handler(req, res) {
     // Fetch all profiles that have a phone number set. Uses the service key
     // so RLS is bypassed.
     const profilesResp = await fetch(
-      `${supabaseUrl}/rest/v1/profiles?phone_number=not.is.null&select=user_id,phone_number`,
+      `${supabaseUrl}/rest/v1/profiles?select=user_id,phone_number`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -55,7 +55,8 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch profiles', details: detail });
     }
 
-    const profiles = await profilesResp.json();
+    const allProfiles = await profilesResp.json();
+    const profiles = allProfiles.filter(p => p.phone_number && p.phone_number.trim());
 
     if (!profiles.length) {
       return res.status(200).json({
