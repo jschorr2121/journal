@@ -15,56 +15,66 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const userId = req.query.user_id;
-  const response = new VoiceResponse();
+  console.log('twilio-voice hit — user_id:', userId, 'body keys:', Object.keys(req.body || {}));
 
-  // Phase 2: recording complete callback
-  if (req.body.RecordingUrl) {
-    console.log('Recording completed for user', userId, ':', req.body.RecordingUrl);
+  const twiml = new VoiceResponse();
 
-    // Await processing inline. Twilio's webhook timeout is ~15s and the
-    // caller has already hung up by this point, so the TwiML we return
-    // here is irrelevant to the user — but we still need to respond before
-    // Vercel kills the function. maxDuration below gives us 60s.
-    try {
-      await processRecording(req.body.RecordingUrl, req.body.CallSid, userId);
-    } catch (err) {
-      console.error('Error processing recording:', err);
+  const sendTwiml = (xml) => {
+    res.setHeader('Content-Type', 'text/xml');
+    res.end(xml);
+  };
+
+  try {
+    const body = req.body || {};
+
+    // Phase 2: recording complete callback
+    if (body.RecordingUrl) {
+      console.log('Phase 2: recording completed for user', userId, ':', body.RecordingUrl);
+
+      try {
+        await processRecording(body.RecordingUrl, body.CallSid, userId);
+      } catch (err) {
+        console.error('Error processing recording:', err);
+      }
+
+      twiml.say('Thanks for your journal entry. Good night!');
+      twiml.hangup();
+      return sendTwiml(twiml.toString());
     }
 
-    response.say('Thanks for your journal entry. Good night!');
-    response.hangup();
-    return res.type('text/xml').send(response.toString());
+    // Phase 1: initial call — prompt and start recording
+    console.log('Phase 1: greeting user', userId);
+    twiml.say(
+      { voice: 'alice' },
+      "Hi! This is your daily journal call. After the beep, record your journal entry for today. Press pound when you're done, or just hang up."
+    );
+
+    const actionUrl = userId
+      ? `/api/twilio-voice?user_id=${encodeURIComponent(userId)}`
+      : '/api/twilio-voice';
+
+    twiml.record({
+      action: actionUrl,
+      method: 'POST',
+      maxLength: 600,
+      timeout: 5,
+      transcribe: false,
+      playBeep: true,
+      finishOnKey: '#',
+    });
+
+    twiml.say("We didn't receive a recording. Please try again tomorrow.");
+    twiml.hangup();
+  } catch (err) {
+    console.error('Unhandled error in twilio-voice:', err);
+    twiml.say('Sorry, something went wrong. Please try again later.');
+    twiml.hangup();
   }
 
-  // Phase 1: initial call — prompt and start recording
-  response.say(
-    { voice: 'alice' },
-    "Hi! This is your daily journal call. After the beep, record your journal entry for today. Press pound when you're done, or just hang up."
-  );
-
-  // Preserve user_id across the recording callback
-  const actionUrl = userId
-    ? `/api/twilio-voice?user_id=${encodeURIComponent(userId)}`
-    : '/api/twilio-voice';
-
-  response.record({
-    action: actionUrl,
-    method: 'POST',
-    maxLength: 600, // 10 min cap
-    timeout: 5, // end on 5s silence
-    transcribe: false, // we use Whisper instead
-    playBeep: true,
-    finishOnKey: '#',
-  });
-
-  response.say("We didn't receive a recording. Please try again tomorrow.");
-  response.hangup();
-
-  res.type('text/xml').send(response.toString());
+  sendTwiml(twiml.toString());
 };
 
 // Give the function up to 60s so inline processing has room to complete.
-// (Vercel Hobby now allows 60s for serverless functions.)
 module.exports.config = { maxDuration: 60 };
 
 async function processRecording(recordingUrl, callSid, userId) {
@@ -182,8 +192,7 @@ Rules:
   const summary = JSON.parse(summaryData.choices[0].message.content);
   console.log('Summary generated:', summary.title);
 
-  // 4. Save to Supabase — shape must match the `journal_entries` table
-  // used by the web app (see public/index.html saveEntry).
+  // 4. Save to Supabase
   const row = {
     user_id: userId,
     date: today,
