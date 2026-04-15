@@ -135,7 +135,7 @@ async function processRecording(recordingUrl, callSid, userId) {
   console.log('Transcription successful:', transcript.substring(0, 100) + '...');
 
   // 3. Summarize via GPT-4o-mini
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
   const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
