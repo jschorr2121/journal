@@ -138,21 +138,54 @@ async function processRecording(recordingUrl, callSid, userId) {
   const transcript = transcribeData.text;
   console.log('Transcription successful:', transcript.substring(0, 100) + '...');
 
-  // 3. Summarize via GPT-4o-mini
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
-  const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+  const supabaseHeaders = {
+    'apikey': supabaseKey,
+    'Authorization': `Bearer ${supabaseKey}`,
+    'Content-Type': 'application/json',
+  };
+
+  // 3. Save transcript immediately — before summarization so it's never lost.
+  const blankRow = {
+    user_id: userId,
+    date: today,
+    transcript,
+    title: null,
+    mood: null,
+    tags: [], highlights: [], feelings: [], todos: [], gratitude: [],
+    key_events: [], productivity: [], goals_and_intentions: [],
+    health_and_wellbeing: [], relationships: [], ideas_and_insights: [],
+    worries_and_open_loops: [], other_notes: [], follow_up_questions: [],
+    photos: [],
+    duration_seconds: 0,
+  };
+
+  const saveResponse = await fetch(`${supabaseUrl}/rest/v1/journal_entries`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openaiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-5.4-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a personal journal assistant. Take a raw voice transcript and produce a clean, structured summary.
+    headers: { ...supabaseHeaders, 'Prefer': 'return=representation' },
+    body: JSON.stringify(blankRow),
+  });
+
+  if (!saveResponse.ok) {
+    throw new Error(`Failed to save entry: ${await saveResponse.text()}`);
+  }
+
+  const saved = await saveResponse.json();
+  const entryId = saved[0]?.id;
+  console.log(`Transcript saved for user ${userId} on ${today}, entry ${entryId}`);
+
+  // 4. Summarize via gpt-5.4-mini and patch the entry — transcript is safe even if this fails.
+  try {
+    const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-5.4-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a personal journal assistant. Take a raw voice transcript and produce a clean, structured summary.
 
 Output valid JSON:
 {
@@ -177,64 +210,48 @@ Rules:
 - Preserve authentic voice
 - Be specific with names, places, details
 - Title should be vivid and specific`,
-        },
-        {
-          role: 'user',
-          content: `Date: ${today}\n\nTranscript:\n${transcript}`,
-        },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
-    }),
-  });
+          },
+          {
+            role: 'user',
+            content: `Date: ${today}\n\nTranscript:\n${transcript}`,
+          },
+        ],
+        temperature: 0.7,
+        response_format: { type: 'json_object' },
+      }),
+    });
 
-  if (!summaryResponse.ok) {
-    throw new Error(`Summarization failed: ${await summaryResponse.text()}`);
+    if (!summaryResponse.ok) throw new Error(`Summarization failed: ${await summaryResponse.text()}`);
+
+    const summary = JSON.parse((await summaryResponse.json()).choices[0].message.content);
+    console.log('Summary generated:', summary.title);
+
+    if (entryId) {
+      await fetch(`${supabaseUrl}/rest/v1/journal_entries?id=eq.${entryId}`, {
+        method: 'PATCH',
+        headers: { ...supabaseHeaders, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          title: summary.title || null,
+          mood: summary.mood || null,
+          tags: summary.tags || [],
+          highlights: summary.highlights || [],
+          feelings: summary.feelings || [],
+          todos: summary.todos || [],
+          gratitude: summary.gratitude || [],
+          key_events: summary.key_events || [],
+          productivity: summary.productivity || [],
+          goals_and_intentions: summary.goals_and_intentions || [],
+          health_and_wellbeing: summary.health_and_wellbeing || [],
+          relationships: summary.relationships || [],
+          ideas_and_insights: summary.ideas_and_insights || [],
+          worries_and_open_loops: summary.worries_and_open_loops || [],
+          other_notes: summary.other_notes || [],
+          follow_up_questions: summary.follow_up_questions || [],
+        }),
+      });
+      console.log(`Summary patched onto entry ${entryId}`);
+    }
+  } catch (err) {
+    console.error('Summarization failed — transcript already saved, entry preserved:', err.message);
   }
-
-  const summaryData = await summaryResponse.json();
-  const summary = JSON.parse(summaryData.choices[0].message.content);
-  console.log('Summary generated:', summary.title);
-
-  // 4. Save to Supabase
-  const row = {
-    user_id: userId,
-    date: today,
-    transcript,
-    title: summary.title || null,
-    mood: summary.mood || null,
-    tags: summary.tags || [],
-    highlights: summary.highlights || [],
-    feelings: summary.feelings || [],
-    todos: summary.todos || [],
-    gratitude: summary.gratitude || [],
-    key_events: summary.key_events || [],
-    productivity: summary.productivity || [],
-    goals_and_intentions: summary.goals_and_intentions || [],
-    health_and_wellbeing: summary.health_and_wellbeing || [],
-    relationships: summary.relationships || [],
-    ideas_and_insights: summary.ideas_and_insights || [],
-    worries_and_open_loops: summary.worries_and_open_loops || [],
-    other_notes: summary.other_notes || [],
-    follow_up_questions: summary.follow_up_questions || [],
-    photos: [],
-    duration_seconds: 0,
-  };
-
-  const saveResponse = await fetch(`${supabaseUrl}/rest/v1/journal_entries`, {
-    method: 'POST',
-    headers: {
-      'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal',
-    },
-    body: JSON.stringify(row),
-  });
-
-  if (!saveResponse.ok) {
-    throw new Error(`Failed to save entry: ${await saveResponse.text()}`);
-  }
-
-  console.log(`Journal entry saved for user ${userId} on ${today}`);
 }
