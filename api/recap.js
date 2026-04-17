@@ -68,7 +68,8 @@ Rules:
 - Be honest but kind — note struggles without being harsh
 - patterns_noticed is the most valuable section — find non-obvious patterns
 - Only include sections where you have real content
-- Keep the person's voice and energy — don't be clinical`;
+- Keep the person's voice and energy — don't be clinical
+- there is an end user reading this section by section, so keep it readible and not repetitive`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

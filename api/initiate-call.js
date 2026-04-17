@@ -24,6 +24,7 @@ module.exports = async function handler(req, res) {
   const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+  // Prefer BASE_URL (stable production domain) over VERCEL_URL (deployment-specific).
   // Strip any protocol prefix so we can safely prepend https://
   const rawBase = process.env.BASE_URL || process.env.VERCEL_URL || '';
   const baseUrl = rawBase.replace(/^https?:\/\//, '').replace(/\/$/, '');
