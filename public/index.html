@@ -13,7 +13,7 @@
 <style>
 :root{--bg:#0a0a0c;--s1:#131316;--s2:#1a1a1f;--bd:#242429;--tx:#e4e4e8;--t2:#75757e;--t3:#4e4e56;--ac:#7BAFD4;--ac2:#6a9fc4;--ad:rgba(123,175,212,.12);--rc:#e05252;--gn:#52c48a;--yw:#d4a23a;--r:10px}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100dvh;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100dvh;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;padding:env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px)}
 .app{max-width:640px;margin:0 auto;padding:20px 16px 80px}
 button{font-family:inherit;cursor:pointer}
 ::selection{background:var(--ad);color:var(--ac)}
@@ -273,7 +273,30 @@ button{font-family:inherit;cursor:pointer}
 .e-photos{margin-top:10px}
 .e-photos .photo-grid{margin-top:0}
 
-@media(max-width:600px){.app{padding:12px 12px 80px}.entry{padding:14px}}
+@media(max-width:600px){
+  .app{padding:12px 12px calc(80px + env(safe-area-inset-bottom, 0px))}
+  .entry{padding:14px}
+  .hdr{padding:6px 0 14px}
+  .hdr h1{font-size:18px}
+  .user-pill{max-width:90px;font-size:10px;padding:3px 8px}
+  .logout-btn{font-size:10px;padding:3px 8px}
+  .settings-btn{padding:3px 6px}
+  .date-nav button{width:36px;height:36px}
+  .today-btn{padding:6px 12px;font-size:10px}
+  .stats{gap:6px;flex-wrap:wrap;font-size:11px}
+  .stats span:not(:last-child)::after{content:'\00b7';margin-left:6px;color:var(--t3)}
+  .view-tab{padding:10px}
+  .input-tab{padding:10px}
+  .rec-btn{width:52px;height:52px}
+  .rec-box{padding:16px}
+  .photo-btn{padding:8px 14px;font-size:12px}
+  .e-title{font-size:15px}
+  .e-meta{font-size:10px}
+  .e-edit-btn{padding:4px 8px;font-size:10px}
+  .e-transcript-btn{font-size:10px;padding:4px 0}
+  .photo-rm{opacity:1}
+  .e-actions button{padding:7px 14px;font-size:11px}
+}
 </style>
 </head>
 <body>
