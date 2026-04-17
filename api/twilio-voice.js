@@ -9,6 +9,7 @@
 // user to attribute the entry to.
 const twilio = require('twilio');
 const VoiceResponse = twilio.twiml.VoiceResponse;
+const { SUMMARY_PROMPT, SUMMARY_MODEL } = require('./_prompts');
 
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -176,46 +177,16 @@ async function processRecording(recordingUrl, callSid, userId) {
   const entryId = saved[0]?.id;
   console.log(`Transcript saved for user ${userId} on ${today}, entry ${entryId}`);
 
-  // 4. Summarize via gpt-5.4-mini and patch the entry — transcript is safe even if this fails.
+  // 4. Summarize and patch the entry — transcript is safe even if this fails.
   try {
     const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-5.4-mini',
+        model: SUMMARY_MODEL,
         messages: [
-          {
-            role: 'system',
-            content: `You are a personal journal assistant. Take a raw voice transcript and produce a clean, structured summary.
-
-Output valid JSON:
-{
-  "title": "Short evocative title for the day (2-6 words, memorable not generic)",
-  "mood": "Single word that captures the vibe",
-  "key_events": ["Notable things that happened with specifics"],
-  "productivity": ["Things accomplished, unfinished, frustrations"],
-  "goals_and_intentions": ["Tomorrow's priorities, longer-term goals"],
-  "health_and_wellbeing": ["Sleep, exercise, food, energy level"],
-  "relationships": ["Interactions, social dynamics"],
-  "gratitude": ["Things they expressed appreciation about"],
-  "ideas_and_insights": ["New ideas, realizations, learnings"],
-  "worries_and_open_loops": ["ONLY actionable unfinished business: decisions pending, tasks not done, people to follow up with, commitments unfulfilled. NOT complaints or feelings about past events."],
-  "feelings": ["Emotions/reflections mentioned"],
-  "tags": ["lowercase tags: work, social, health, etc."],
-  "other_notes": ["Anything else mentioned"],
-  "follow_up_questions": ["1-2 thoughtful follow-up questions"]
-}
-
-Rules:
-- ONLY include sections with content
-- Preserve authentic voice
-- Be specific with names, places, details
-- Title should be vivid and specific`,
-          },
-          {
-            role: 'user',
-            content: `Date: ${today}\n\nTranscript:\n${transcript}`,
-          },
+          { role: 'system', content: SUMMARY_PROMPT },
+          { role: 'user', content: `Date: ${today}\n\nTranscript:\n${transcript}` },
         ],
         temperature: 0.7,
         response_format: { type: 'json_object' },
