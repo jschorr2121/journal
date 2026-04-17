@@ -31,15 +31,19 @@ module.exports = async function handler(req, res) {
     if (body.RecordingUrl) {
       console.log('Phase 2: recording completed for user', userId, ':', body.RecordingUrl);
 
+      // Respond to Twilio IMMEDIATELY — it only waits ~15s.
+      // Processing (download + transcribe + summarize) takes 30-60s,
+      // so we send TwiML first and keep the function alive to finish.
+      twiml.say('Thanks for your journal entry. Good night!');
+      twiml.hangup();
+      sendTwiml(twiml.toString());
+
       try {
         await processRecording(body.RecordingUrl, body.CallSid, userId);
       } catch (err) {
         console.error('Error processing recording:', err);
       }
-
-      twiml.say('Thanks for your journal entry. Good night!');
-      twiml.hangup();
-      return sendTwiml(twiml.toString());
+      return;
     }
 
     // Phase 1: initial call — prompt and start recording
@@ -144,7 +148,7 @@ async function processRecording(recordingUrl, callSid, userId) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         {
           role: 'system',
