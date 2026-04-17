@@ -85,10 +85,11 @@ async function processRecording(recordingUrl, callSid, userId) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const openaiKey = process.env.OPENAI_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
-  if (!accountSid || !authToken || !openaiKey || !supabaseUrl || !supabaseKey) {
+  if (!accountSid || !authToken || !openaiKey || !groqKey || !supabaseUrl || !supabaseKey) {
     throw new Error('Missing required environment variables');
   }
   if (!userId) {
@@ -109,22 +110,22 @@ async function processRecording(recordingUrl, callSid, userId) {
   const audioBuffer = await recordingResponse.arrayBuffer();
   console.log('Downloaded recording, size:', audioBuffer.byteLength);
 
-  // 2. Transcribe with OpenAI Whisper
+  // 2. Transcribe with Groq Whisper large-v3 (faster + cheaper than OpenAI Whisper)
   const boundary = '----FormBoundary' + Math.random().toString(36).slice(2);
   const parts = [];
   parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="journal-entry.mp3"\r\nContent-Type: audio/mpeg\r\n\r\n`);
   parts.push(Buffer.from(audioBuffer));
-  parts.push(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n`);
+  parts.push(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-large-v3\r\n`);
   parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\nen\r\n`);
   parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="prompt"\r\n\r\nThis is a daily journal entry about someone's day.\r\n`);
   parts.push(`--${boundary}--\r\n`);
 
   const transcribeBody = Buffer.concat(parts.map(p => typeof p === 'string' ? Buffer.from(p) : p));
 
-  const transcribeResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  const transcribeResponse = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiKey}`,
+      'Authorization': `Bearer ${groqKey}`,
       'Content-Type': `multipart/form-data; boundary=${boundary}`,
     },
     body: transcribeBody,
