@@ -113,6 +113,37 @@ button{font-family:inherit;cursor:pointer}
 .stats{display:flex;gap:16px;padding:8px 0;margin-bottom:14px;font-size:12px;color:var(--t2)}
 .stats .sv{color:var(--ac);font-weight:600}
 
+/* Insights dashboard */
+.insights{margin-bottom:16px;display:none}
+.insights.show{display:block}
+.insights-header{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.insights-header svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5}
+
+/* Flashbacks */
+.flashback-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.flashback{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px}
+.flashback:hover{border-color:var(--ac);background:var(--ad)}
+.flashback-time{font-size:10px;color:var(--t3);white-space:nowrap;min-width:70px;text-transform:uppercase;letter-spacing:.3px;font-weight:500}
+.flashback-body{flex:1;min-width:0}
+.flashback-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flashback-hl{font-size:11px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.flashback-mood{font-size:10px;color:var(--ac);padding:2px 8px;background:var(--ad);border-radius:10px;white-space:nowrap}
+
+/* Open Loops */
+.loops-section{margin-bottom:14px}
+.loops-header{font-size:11px;font-weight:600;color:var(--yw);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.loops-header svg{width:12px;height:12px;stroke:var(--yw);fill:none;stroke-width:2}
+.loop-item{font-size:12px;color:var(--tx);padding:6px 10px;background:var(--s1);border:1px solid var(--bd);border-left:3px solid var(--yw);border-radius:6px;margin-bottom:4px;line-height:1.5}
+.loop-date{font-size:10px;color:var(--t3);margin-left:6px}
+
+/* Mood bar */
+.mood-bar{display:flex;gap:4px;align-items:center;margin-left:8px}
+.mood-dot{width:10px;height:10px;border-radius:50%;background:var(--t3);transition:background .2s}
+.mood-dot.positive{background:var(--gn)}
+.mood-dot.neutral{background:var(--yw)}
+.mood-dot.negative{background:var(--rc)}
+.mood-dot-label{font-size:9px;color:var(--t3);text-align:center;width:10px}
+
 /* Input mode tabs */
 .input-tabs{display:flex;gap:0;border-radius:var(--r) var(--r) 0 0;overflow:hidden;border:1px solid var(--bd);border-bottom:none}
 .input-tab{flex:1;padding:9px;text-align:center;font-size:12px;font-weight:500;cursor:pointer;background:var(--s1);color:var(--t3);transition:all .15s;letter-spacing:.2px}
@@ -347,6 +378,12 @@ button{font-family:inherit;cursor:pointer}
   </div>
 
   <div class="stats" id="stats"></div>
+
+  <!-- Insights Dashboard (shown on today only) -->
+  <div class="insights" id="insightsPanel">
+    <div id="flashbackSection"></div>
+    <div id="loopsSection"></div>
+  </div>
 
   <div class="view-tabs">
     <div class="view-tab active" id="viewDay" onclick="setView('day')">Day</div>
@@ -871,6 +908,7 @@ async function loadAndRender() {
   const entries = await fetchEntries(date);
   entriesCache[date] = entries;
   render(entries);
+  loadInsights();
 }
 
 function render(entries) {
@@ -1435,6 +1473,111 @@ function renderRecap(r) {
 const _origProcessTranscript = processTranscript;
 // We need to redefine processTranscript since it was already defined above
 // So let's patch it instead
+
+// === INSIGHTS DASHBOARD ===
+const MOOD_POSITIVE = ['happy','excited','energized','grateful','content','refreshed','inspired','motivated','proud','hopeful','joyful','optimistic','peaceful','calm','confident','fulfilled','accomplished','creative','loved','playful','relieved','amused','elated','blissful'];
+const MOOD_NEGATIVE = ['anxious','stressed','sad','frustrated','overwhelmed','drained','exhausted','angry','worried','lonely','depressed','irritated','defeated','insecure','restless','melancholy','burned out','burnt out','tired','discouraged','disappointed','nervous','fearful','hopeless'];
+
+function moodSentiment(mood) {
+  if (!mood) return 'none';
+  const m = mood.toLowerCase().trim();
+  if (MOOD_POSITIVE.includes(m)) return 'positive';
+  if (MOOD_NEGATIVE.includes(m)) return 'negative';
+  return 'neutral';
+}
+
+let insightsCache = null;
+
+async function loadInsights() {
+  const panel = document.getElementById('insightsPanel');
+  if (!isToday(curDate) || !user) {
+    panel.classList.remove('show');
+    return;
+  }
+
+  // Show panel immediately, load data
+  panel.classList.add('show');
+
+  // Use cache if fresh (less than 5 min)
+  if (!insightsCache || Date.now() - insightsCache.ts > 300000) {
+    try {
+      const resp = await fetch(`/api/insights?user_id=${encodeURIComponent(user.id)}`);
+      if (!resp.ok) throw new Error('Failed to load insights');
+      insightsCache = { data: await resp.json(), ts: Date.now() };
+    } catch (err) {
+      console.error('Insights error:', err);
+      panel.classList.remove('show');
+      return;
+    }
+  }
+
+  const { flashbacks, openLoops, moodWeek } = insightsCache.data;
+
+  // Render flashbacks
+  const fbEl = document.getElementById('flashbackSection');
+  if (flashbacks.length) {
+    fbEl.innerHTML = `
+      <div class="insights-header">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        On This Day
+      </div>
+      <div class="flashback-list">
+        ${flashbacks.map(fb => `
+          <div class="flashback" onclick="goDate('${fb.date}')">
+            <div class="flashback-time">${esc(fb.label)}</div>
+            <div class="flashback-body">
+              <div class="flashback-title">${esc(fb.title || 'Journal Entry')}</div>
+              ${fb.highlight ? `<div class="flashback-hl">${esc(fb.highlight)}</div>` : ''}
+            </div>
+            ${fb.mood ? `<div class="flashback-mood">${esc(fb.mood)}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    fbEl.innerHTML = '';
+  }
+
+  // Render open loops
+  const loopsEl = document.getElementById('loopsSection');
+  if (openLoops.length) {
+    loopsEl.innerHTML = `
+      <div class="loops-header">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Open Loops (${openLoops.length})
+      </div>
+      ${openLoops.map(l => `
+        <div class="loop-item">${esc(l.text)}<span class="loop-date">${l.date}</span></div>
+      `).join('')}
+    `;
+  } else {
+    loopsEl.innerHTML = '';
+  }
+
+  // Render mood bar in stats
+  renderMoodBar(moodWeek);
+}
+
+function renderMoodBar(moodWeek) {
+  // Remove existing mood bar if any
+  const existing = document.querySelector('.mood-bar');
+  if (existing) existing.remove();
+
+  if (!moodWeek || !moodWeek.some(d => d.mood)) return;
+
+  const bar = document.createElement('div');
+  bar.className = 'mood-bar';
+  bar.title = 'Last 7 days mood';
+  moodWeek.forEach(d => {
+    const dot = document.createElement('div');
+    dot.className = `mood-dot ${moodSentiment(d.mood)}`;
+    if (d.mood) dot.title = `${d.date}: ${d.mood}`;
+    bar.appendChild(dot);
+  });
+
+  const stats = document.getElementById('stats');
+  stats.appendChild(bar);
+}
 
 // === INIT ===
 checkAuth();
