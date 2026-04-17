@@ -199,7 +199,7 @@ Output valid JSON:
   "relationships": ["Interactions, social dynamics"],
   "gratitude": ["Things they expressed appreciation about"],
   "ideas_and_insights": ["New ideas, realizations, learnings"],
-  "worries_and_open_loops": ["Unresolved concerns, decisions pending"],
+  "worries_and_open_loops": ["ONLY actionable unfinished business: decisions pending, tasks not done, people to follow up with, commitments unfulfilled. NOT complaints or feelings about past events."],
   "feelings": ["Emotions/reflections mentioned"],
   "tags": ["lowercase tags: work, social, health, etc."],
   "other_notes": ["Anything else mentioned"],

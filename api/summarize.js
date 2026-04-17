@@ -42,7 +42,7 @@ Output valid JSON:
   "relationships": ["Interactions with people, social dynamics, relationship reflections."],
   "gratitude": ["Things they expressed appreciation or positivity about."],
   "ideas_and_insights": ["New ideas, realizations, creative thoughts, learnings, aha moments."],
-  "worries_and_open_loops": ["Unresolved concerns, things weighing on them, decisions not yet made, anxieties."],
+  "worries_and_open_loops": ["ONLY actionable unfinished business: decisions pending, tasks not yet done, people to follow up with, commitments made but not fulfilled, unanswered questions needing resolution. NOT complaints, frustrations, or feelings about past events."],
   "feelings": ["Array of emotions/reflections mentioned - keep the person's voice. These should be actual feelings; if no feelings mentioned, keep blank."],
   "tags": ["lowercase category tags: work, social, health, creative, food, fitness, relationships, money, travel, etc."],
   "other_notes": ["Anything else mentioned that doesn't fall into the above categories."],
