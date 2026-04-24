@@ -62,7 +62,7 @@ module.exports = async function handler(req, res) {
       action: actionUrl,
       method: 'POST',
       maxLength: 600,
-      timeout: 5,
+      timeout: 20,
       transcribe: false,
       playBeep: true,
       finishOnKey: '#',
@@ -96,6 +96,9 @@ async function processRecording(recordingUrl, callSid, userId) {
   if (!userId) {
     throw new Error('Missing user_id — cannot attribute entry');
   }
+
+  // Wait for Twilio to finish processing the recording before downloading.
+  await new Promise(r => setTimeout(r, 3000));
 
   // 1. Download the recording from Twilio
   const recordingResponse = await fetch(`${recordingUrl}.mp3`, {
